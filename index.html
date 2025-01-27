@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>StorageWeb</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="container">
+    <h1>File Upload & Download</h1>
+
+    <form id="uploadForm">
+      <label for="fileToUpload">Select file to upload:</label><br>
+      <input type="file" name="file" id="fileToUpload"><br><br>
+      <button type="submit">Upload File</button>
+    </form>
+
+    <div id="downloadLink"></div>
+
+    <button id="listFilesButton">List Uploaded Files</button>
+    <div id="fileList"></div>
+
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const downloadLinkDiv = document.getElementById('downloadLink');
+    const listFilesButton = document.getElementById('listFilesButton');
+    const fileListDiv = document.getElementById('fileList');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(form);
+      const file = formData.get('file');
+
+      try {
+        const response = await fetch('/.netlify/functions/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          alert('Error uploading file:', data.error);
+        } else {
+          downloadLinkDiv.innerHTML = `<a href="${data.downloadUrl}" download>Download File</a>`;
+        }
+
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        alert('An error occurred during upload.');
+      }
+    });
+
+    listFilesButton.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/.netlify/functions/list-files');
+        const data = await response.json();
+
+        fileListDiv.innerHTML = '';
+        if (data.files && data.files.length > 0) {
+          const list = document.createElement('ul');
+          data.files.forEach(file => {
+            const listItem = document.createElement('li');
+            const downloadLink = document.createElement('a');
+            downloadLink.href = file.downloadUrl;
+            downloadLink.textContent = file.fileName;
+            listItem.appendChild(downloadLink);
+            list.appendChild(listItem);
+          });
+          fileListDiv.appendChild(list);
+        } else {
+          fileListDiv.textContent = 'No files uploaded.';
+        }
+      } catch (error) {
+        console.error('Error fetching file list:', error);
+        fileListDiv.textContent = 'Error fetching file list.';
+      }
+    });
+  </script>
+  <script src="/functions/download.js"></script>
+  <script src="/functions/upload.js"></script>
+  <script src="/functions/list-file.js"></script>
+</body>
+</html>
